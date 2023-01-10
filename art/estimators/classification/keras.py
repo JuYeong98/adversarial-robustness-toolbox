@@ -146,7 +146,7 @@ class KerasClassifier(ClassGradientsMixin, ClassifierMixin, KerasEstimator):
         """
         # pylint: disable=E0401
         if self.is_tensorflow:
-            import tensorflow as tf  # lgtm [py/repeated-import]
+            import tensorflow as tf
 
             if tf.executing_eagerly():  # pragma: no cover
                 raise ValueError("TensorFlow is executing eagerly. Please disable eager execution.")
@@ -155,7 +155,7 @@ class KerasClassifier(ClassGradientsMixin, ClassifierMixin, KerasEstimator):
 
             self._losses = keras.losses
         else:
-            import keras  # lgtm [py/repeated-import]
+            import keras
             import keras.backend as k
 
             if hasattr(keras.utils, "losses_utils"):
@@ -295,6 +295,8 @@ class KerasClassifier(ClassGradientsMixin, ClassifierMixin, KerasEstimator):
             ),
         ):
             loss_ = loss_function(label_ph, self._output)
+        else:
+            raise ValueError("Type of loss function could not be determined.")
 
         # Define loss gradients
         loss_gradients = k.gradients(loss_, self._input)
@@ -376,7 +378,11 @@ class KerasClassifier(ClassGradientsMixin, ClassifierMixin, KerasEstimator):
         else:
             import keras.backend as k
 
+        y = check_and_transform_label_format(y, self.nb_classes)  # type: ignore
+
+        # Apply preprocessing
         x_preprocessed, y_preprocessed = self._apply_preprocessing(x, y, fit=False)
+
         shape_match = [i is None or i == j for i, j in zip(self._input_shape, x_preprocessed.shape[1:])]
         if not all(shape_match):  # pragma: no cover
             raise ValueError(
@@ -717,49 +723,17 @@ class KerasClassifier(ClassGradientsMixin, ClassifierMixin, KerasEstimator):
 
     def clone_for_refitting(
         self,
-    ) -> "KerasClassifier":  # lgtm [py/inheritance/incorrect-overridden-signature]
+    ) -> "KerasClassifier":
         """
         Create a copy of the classifier that can be refit from scratch. Will inherit same architecture, optimizer and
         initialization as cloned model, but without weights.
 
-        :return: new estimator
+        :return: new classifier
         """
-
-        import tensorflow as tf  # lgtm [py/repeated-import]
-        import keras  # lgtm [py/repeated-import]
-
-        try:
-            # only works for functionally defined models
-            model = keras.models.clone_model(self.model, input_tensors=self.model.inputs)
-        except ValueError as error:
-            raise ValueError("Cannot clone custom models") from error
-
-        optimizer = self.model.optimizer
-        # reset optimizer variables
-        for var in optimizer.variables():
-            var.assign(tf.zeros_like(var))
-
-        loss_weights = None
-        weighted_metrics = None
-        if self.model.compiled_loss:
-            loss_weights = self.model.compiled_loss._loss_weights  # pylint: disable=W0212
-        if self.model.compiled_metrics:
-            weighted_metrics = self.model.compiled_metrics._weighted_metrics  # pylint: disable=W0212
-
-        model.compile(
-            optimizer=optimizer,
-            loss=self.model.loss,
-            metrics=[m.name for m in self.model.metrics],  # Need to copy metrics this way for keras
-            loss_weights=loss_weights,
-            weighted_metrics=weighted_metrics,
-            run_eagerly=self.model.run_eagerly,
-        )
-
-        clone = type(self)(model)
-        params = self.get_params()
-        del params["model"]
-        clone.set_params(**params)
-        return clone
+        cloned_classifier = super().clone_for_refitting()
+        if isinstance(cloned_classifier, KerasClassifier):
+            return cloned_classifier
+        raise ValueError("Type of cloned classifier not expected.")
 
     def _init_class_gradients(self, label: Optional[Union[int, List[int], np.ndarray]] = None) -> None:
         # pylint: disable=E0401
