@@ -8,14 +8,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-
+from tqdm import tqdm
 from art.attacks.evasion import FastGradientMethod
 from art.estimators.classification import PyTorchClassifier
 from art.utils import load_mnist
 
 
-# Step 0: Define the neural network model, return logits instead of activation in forward method
 
+# Step 0: Define the neural network model, return logits instead of activation in forward method
 
 class Net(nn.Module):
     def __init__(self):
@@ -64,10 +64,10 @@ classifier = PyTorchClassifier(
     input_shape=(1, 28, 28),
     nb_classes=10,
 )
-
+print('check')
 # Step 4: Train the ART classifier
 
-classifier.fit(x_train, y_train, batch_size=64, nb_epochs=3)
+classifier.fit(x_train, y_train, batch_size=128, nb_epochs=3)
 
 # Step 5: Evaluate the ART classifier on benign test examples
 
@@ -84,3 +84,4 @@ x_test_adv = attack.generate(x=x_test)
 predictions = classifier.predict(x_test_adv)
 accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
 print("Accuracy on adversarial test examples: {}%".format(accuracy * 100))
+

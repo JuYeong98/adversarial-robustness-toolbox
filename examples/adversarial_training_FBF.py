@@ -9,14 +9,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from torch.utils.data import Dataset, DataLoader
 
-from art.classifiers import PyTorchClassifier
+from torch.utils.data import Dataset, DataLoader
 from art.data_generators import PyTorchDataGenerator
 from art.defences.trainer import AdversarialTrainerFBFPyTorch
 from art.utils import load_cifar10
 from art.attacks.evasion import ProjectedGradientDescent
-
+#from art.classifiers import PyTorchClassifier
+from art.estimators.classification.pytorch import PyTorchClassifier
 """
 For this example we choose the PreActResNet model as used in the paper (https://openreview.net/forum?id=BJx040EFvH)
 The code for the model architecture has been adopted from
